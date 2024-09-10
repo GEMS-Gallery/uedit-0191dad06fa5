@@ -1,4 +1,9 @@
 type Time = int;
+type Result_1 = 
+ variant {
+   err: text;
+   ok: Document;
+ };
 type Result = 
  variant {
    err: text;
@@ -8,14 +13,15 @@ type Document =
  record {
    content: text;
    id: nat;
+   owner: principal;
    timestamp: Time;
    title: text;
  };
 service : {
   createDocument: (text, text) -> (nat);
   deleteDocument: (nat) -> (Result);
-  getAllDocuments: () -> (vec Document) query;
-  getDocument: (nat) -> (opt Document) query;
+  getAllDocuments: (principal) -> (vec Document) query;
+  getDocument: (nat, principal) -> (Result_1) query;
   renameDocument: (nat, text) -> (Result);
   updateDocument: (nat, text, text) -> (Result);
 }

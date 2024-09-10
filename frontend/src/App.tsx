@@ -6,6 +6,9 @@ import { Editor } from 'react-draft-wysiwyg';
 import { EditorState, convertToRaw, convertFromRaw } from 'draft-js';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import { backend } from 'declarations/backend';
+import { AuthClient } from '@dfinity/auth-client';
+import { Actor, HttpAgent } from '@dfinity/agent';
+import { Principal } from '@dfinity/principal';
 
 interface Document {
   id: bigint;
@@ -20,15 +23,65 @@ function App() {
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authClient, setAuthClient] = useState<AuthClient | null>(null);
+  const [userPrincipal, setUserPrincipal] = useState<Principal | null>(null);
 
   useEffect(() => {
-    fetchDocuments();
+    initAuth();
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated && userPrincipal) {
+      fetchDocuments();
+    }
+  }, [isAuthenticated, userPrincipal]);
+
+  const initAuth = async () => {
+    const client = await AuthClient.create();
+    setAuthClient(client);
+
+    const isLoggedIn = await client.isAuthenticated();
+    setIsAuthenticated(isLoggedIn);
+
+    if (isLoggedIn) {
+      const identity = client.getIdentity();
+      const principal = identity.getPrincipal();
+      setUserPrincipal(principal);
+      const agent = new HttpAgent({ identity });
+      Actor.agentOf(backend).replaceIdentity(identity);
+    }
+  };
+
+  const login = async () => {
+    if (authClient) {
+      await authClient.login({
+        identityProvider: 'https://identity.ic0.app',
+        onSuccess: () => {
+          setIsAuthenticated(true);
+          const identity = authClient.getIdentity();
+          const principal = identity.getPrincipal();
+          setUserPrincipal(principal);
+        },
+      });
+    }
+  };
+
+  const logout = async () => {
+    if (authClient) {
+      await authClient.logout();
+      setIsAuthenticated(false);
+      setUserPrincipal(null);
+      setDocuments([]);
+      setSelectedDocument(null);
+    }
+  };
+
   const fetchDocuments = async () => {
+    if (!userPrincipal) return;
     setLoading(true);
     try {
-      const docs = await backend.getAllDocuments();
+      const docs = await backend.getAllDocuments(userPrincipal);
       setDocuments(docs);
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -98,12 +151,19 @@ function App() {
   };
 
   const selectDocument = async (doc: Document) => {
+    if (!userPrincipal) return;
     setSelectedDocument(doc);
     try {
-      const content = JSON.parse(doc.content);
-      setEditorState(EditorState.createWithContent(convertFromRaw(content)));
-      setHasUnsavedChanges(false);
-    } catch {
+      const result = await backend.getDocument(doc.id, userPrincipal);
+      if ('ok' in result) {
+        const content = JSON.parse(result.ok.content);
+        setEditorState(EditorState.createWithContent(convertFromRaw(content)));
+        setHasUnsavedChanges(false);
+      } else {
+        console.error('Error fetching document:', result.err);
+      }
+    } catch (error) {
+      console.error('Error selecting document:', error);
       setEditorState(EditorState.createEmpty());
     }
   };
@@ -113,8 +173,28 @@ function App() {
     setHasUnsavedChanges(true);
   };
 
+  if (!isAuthenticated) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 4 }}>
+        <Paper sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="h4" gutterBottom>
+            Document Editor
+          </Typography>
+          <Button variant="contained" onClick={login} sx={{ mt: 2 }}>
+            Login with Internet Identity
+          </Button>
+        </Paper>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', flexDirection: 'column', pt: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button variant="outlined" onClick={logout}>
+          Logout
+        </Button>
+      </Box>
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         <Paper sx={{ width: '30%', mr: 2, p: 2, overflow: 'auto' }}>
           <Typography variant="h6" gutterBottom>
