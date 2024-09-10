@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress, TextField } from '@mui/material';
+import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress, TextField, Paper } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { Editor } from 'react-draft-wysiwyg';
 import { EditorState, convertToRaw, convertFromRaw } from 'draft-js';
@@ -104,9 +104,9 @@ function App() {
   };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ display: 'flex', height: '100vh', pt: 2 }}>
-        <Box sx={{ width: '30%', mr: 2 }}>
+    <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', flexDirection: 'column', pt: 2 }}>
+      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+        <Paper sx={{ width: '30%', mr: 2, p: 2, overflow: 'auto' }}>
           <Typography variant="h6" gutterBottom>
             Documents
           </Typography>
@@ -134,8 +134,8 @@ function App() {
           >
             <AddIcon />
           </Fab>
-        </Box>
-        <Box sx={{ width: '70%' }}>
+        </Paper>
+        <Paper sx={{ width: '70%', p: 2, display: 'flex', flexDirection: 'column' }}>
           {selectedDocument && (
             <>
               <TextField
@@ -148,18 +148,20 @@ function App() {
                 fullWidth
                 margin="normal"
               />
-              <Editor
-                editorState={editorState}
-                onEditorStateChange={setEditorState}
-                onBlur={saveDocument}
-                toolbar={{
-                  options: ['inline', 'blockType', 'list', 'textAlign', 'link', 'history'],
-                  inline: { options: ['bold', 'italic', 'underline'] },
-                }}
-              />
+              <Box sx={{ flexGrow: 1, mt: 2, border: '1px solid #ccc', borderRadius: '4px' }}>
+                <Editor
+                  editorState={editorState}
+                  onEditorStateChange={setEditorState}
+                  onBlur={saveDocument}
+                  toolbar={{
+                    options: ['inline', 'blockType', 'list', 'textAlign', 'link', 'history'],
+                    inline: { options: ['bold', 'italic', 'underline'] },
+                  }}
+                />
+              </Box>
             </>
           )}
-        </Box>
+        </Paper>
       </Box>
     </Container>
   );
