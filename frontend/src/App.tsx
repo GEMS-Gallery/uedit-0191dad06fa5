@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress, TextField } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { Editor } from 'react-draft-wysiwyg';
@@ -62,18 +62,35 @@ function App() {
     setLoading(false);
   };
 
-  const renameDocument = async (newTitle: string) => {
-    if (!selectedDocument) return;
+  const renameDocumentDebounced = useCallback(
+    (id: bigint, newTitle: string) => {
+      setLoading(true);
+      backend.renameDocument(id, newTitle)
+        .then(() => {
+          setSelectedDocument((prevDoc) => prevDoc ? { ...prevDoc, title: newTitle } : null);
+          return fetchDocuments();
+        })
+        .catch((error) => {
+          console.error('Error renaming document:', error);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    },
+    []
+  );
 
-    setLoading(true);
-    try {
-      await backend.renameDocument(selectedDocument.id, newTitle);
-      setSelectedDocument({ ...selectedDocument, title: newTitle });
-      await fetchDocuments();
-    } catch (error) {
-      console.error('Error renaming document:', error);
+  const debouncedRename = useRef<NodeJS.Timeout>();
+
+  const handleRename = (newTitle: string) => {
+    if (selectedDocument) {
+      if (debouncedRename.current) {
+        clearTimeout(debouncedRename.current);
+      }
+      debouncedRename.current = setTimeout(() => {
+        renameDocumentDebounced(selectedDocument.id, newTitle);
+      }, 1000);
     }
-    setLoading(false);
   };
 
   const selectDocument = async (doc: Document) => {
@@ -123,7 +140,10 @@ function App() {
             <>
               <TextField
                 value={selectedDocument.title}
-                onChange={(e) => renameDocument(e.target.value)}
+                onChange={(e) => {
+                  setSelectedDocument({ ...selectedDocument, title: e.target.value });
+                  handleRename(e.target.value);
+                }}
                 variant="outlined"
                 fullWidth
                 margin="normal"
