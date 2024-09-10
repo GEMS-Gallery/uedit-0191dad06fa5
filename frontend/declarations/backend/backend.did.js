@@ -12,6 +12,7 @@ export const idlFactory = ({ IDL }) => {
     'deleteDocument' : IDL.Func([IDL.Nat], [Result], []),
     'getAllDocuments' : IDL.Func([], [IDL.Vec(Document)], ['query']),
     'getDocument' : IDL.Func([IDL.Nat], [IDL.Opt(Document)], ['query']),
+    'renameDocument' : IDL.Func([IDL.Nat, IDL.Text], [Result], []),
     'updateDocument' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [Result], []),
   });
 };

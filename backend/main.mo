@@ -60,6 +60,24 @@ actor {
     }
   };
 
+  public func renameDocument(id : Nat, newTitle : Text) : async Result.Result<(), Text> {
+    switch (documentMap.get(id)) {
+      case (null) {
+        #err("Document not found")
+      };
+      case (?existingDoc) {
+        let updatedDoc : Document = {
+          id = id;
+          title = newTitle;
+          content = existingDoc.content;
+          timestamp = Time.now();
+        };
+        documentMap.put(id, updatedDoc);
+        #ok()
+      };
+    }
+  };
+
   public query func getDocument(id : Nat) : async ?Document {
     documentMap.get(id)
   };

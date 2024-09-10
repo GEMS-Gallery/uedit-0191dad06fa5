@@ -16,5 +16,6 @@ service : {
   deleteDocument: (nat) -> (Result);
   getAllDocuments: () -> (vec Document) query;
   getDocument: (nat) -> (opt Document) query;
+  renameDocument: (nat, text) -> (Result);
   updateDocument: (nat, text, text) -> (Result);
 }

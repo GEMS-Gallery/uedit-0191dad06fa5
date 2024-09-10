@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress } from '@mui/material';
+import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress, TextField } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { Editor } from 'react-draft-wysiwyg';
 import { EditorState, convertToRaw, convertFromRaw } from 'draft-js';
@@ -62,6 +62,20 @@ function App() {
     setLoading(false);
   };
 
+  const renameDocument = async (newTitle: string) => {
+    if (!selectedDocument) return;
+
+    setLoading(true);
+    try {
+      await backend.renameDocument(selectedDocument.id, newTitle);
+      setSelectedDocument({ ...selectedDocument, title: newTitle });
+      await fetchDocuments();
+    } catch (error) {
+      console.error('Error renaming document:', error);
+    }
+    setLoading(false);
+  };
+
   const selectDocument = async (doc: Document) => {
     setSelectedDocument(doc);
     try {
@@ -107,9 +121,13 @@ function App() {
         <Box sx={{ width: '70%' }}>
           {selectedDocument && (
             <>
-              <Typography variant="h6" gutterBottom>
-                {selectedDocument.title}
-              </Typography>
+              <TextField
+                value={selectedDocument.title}
+                onChange={(e) => renameDocument(e.target.value)}
+                variant="outlined"
+                fullWidth
+                margin="normal"
+              />
               <Editor
                 editorState={editorState}
                 onEditorStateChange={setEditorState}

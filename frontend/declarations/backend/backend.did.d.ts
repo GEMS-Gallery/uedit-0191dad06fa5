@@ -16,6 +16,7 @@ export interface _SERVICE {
   'deleteDocument' : ActorMethod<[bigint], Result>,
   'getAllDocuments' : ActorMethod<[], Array<Document>>,
   'getDocument' : ActorMethod<[bigint], [] | [Document]>,
+  'renameDocument' : ActorMethod<[bigint, string], Result>,
   'updateDocument' : ActorMethod<[bigint, string, string], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
