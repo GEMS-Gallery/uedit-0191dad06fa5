@@ -1,0 +1,20 @@
+type Time = int;
+type Result = 
+ variant {
+   err: text;
+   ok;
+ };
+type Document = 
+ record {
+   content: text;
+   id: nat;
+   timestamp: Time;
+   title: text;
+ };
+service : {
+  createDocument: (text, text) -> (nat);
+  deleteDocument: (nat) -> (Result);
+  getAllDocuments: () -> (vec Document) query;
+  getDocument: (nat) -> (opt Document) query;
+  updateDocument: (nat, text, text) -> (Result);
+}
