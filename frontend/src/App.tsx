@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress, TextField, Paper } from '@mui/material';
+import { Box, Container, Typography, List, ListItem, ListItemText, Fab, CircularProgress, TextField, Paper, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import SaveIcon from '@mui/icons-material/Save';
 import { Editor } from 'react-draft-wysiwyg';
 import { EditorState, convertToRaw, convertFromRaw } from 'draft-js';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
@@ -18,6 +19,7 @@ function App() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
   const [loading, setLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -42,6 +44,7 @@ function App() {
       const newDoc = { id, title: 'New Document', content: '', timestamp: BigInt(Date.now()) };
       setSelectedDocument(newDoc);
       setEditorState(EditorState.createEmpty());
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Error creating new document:', error);
     }
@@ -56,6 +59,7 @@ function App() {
     try {
       await backend.updateDocument(selectedDocument.id, selectedDocument.title, content);
       await fetchDocuments();
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Error saving document:', error);
     }
@@ -98,9 +102,15 @@ function App() {
     try {
       const content = JSON.parse(doc.content);
       setEditorState(EditorState.createWithContent(convertFromRaw(content)));
+      setHasUnsavedChanges(false);
     } catch {
       setEditorState(EditorState.createEmpty());
     }
+  };
+
+  const handleEditorChange = (newEditorState: EditorState) => {
+    setEditorState(newEditorState);
+    setHasUnsavedChanges(true);
   };
 
   return (
@@ -151,14 +161,28 @@ function App() {
               <Box sx={{ flexGrow: 1, mt: 2, border: '1px solid #ccc', borderRadius: '4px' }}>
                 <Editor
                   editorState={editorState}
-                  onEditorStateChange={setEditorState}
-                  onBlur={saveDocument}
+                  onEditorStateChange={handleEditorChange}
                   toolbar={{
                     options: ['inline', 'blockType', 'list', 'textAlign', 'link', 'history'],
                     inline: { options: ['bold', 'italic', 'underline'] },
                   }}
                 />
               </Box>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<SaveIcon />}
+                onClick={saveDocument}
+                disabled={!hasUnsavedChanges || loading}
+                sx={{ mt: 2, alignSelf: 'flex-end' }}
+              >
+                Save
+              </Button>
+              {hasUnsavedChanges && (
+                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                  *Unsaved changes
+                </Typography>
+              )}
             </>
           )}
         </Paper>
